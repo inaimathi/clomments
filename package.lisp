@@ -15,3 +15,5 @@
 (defvar *web-server* (start (make-instance 'acceptor :port 4242)))
 (push (create-static-file-dispatcher-and-handler "/clomments.css" (merge-pathnames "clomments.css")) *dispatch-table*)
 (push (create-static-file-dispatcher-and-handler "/clomments.js" (merge-pathnames "clomments.js")) *dispatch-table*)
+
+(load "js.lisp") ;;oddities happen on the initial load of js.lisp; this regenerates the file

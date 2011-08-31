@@ -13,16 +13,36 @@
 (defpsmacro doc-ready (&body body) 
   `($ document (ready (fn ,@body))))
 
+(defpsmacro page-url (page)
+  (concatenate 'string *url* page))
+
+(defpsmacro post-to (target-page (&rest data) on-success)
+  `(chain $ (post (page-url ,target-page)
+		  (create ,@data)
+		  ,on-success)))
+
+(defpsmacro define-comment-fn (target-page)
+  `(defun ,(intern (format nil "send-~(~a~)" target-page)) (comment-id)
+     (post-to ,(format nil "/~(~a~)" target-page) (:comment-id comment-id)
+	      (lambda (data) 
+		(replace-comment ($ (+ ".clomment-" comment-id)) data)))))
+
 (compile-js "clomments.js" "js.lisp"
-	    (ps* `(doc-ready (chain $ (get ,(concatenate 'string *url* "/") (create)
-					   #'display-data)))
-		 
-		 `(defun display-data (data)
-		    ($ "#clomments" (html data)))
-		 
-		 `(defun send-add-comment ()
-		    (chain $ (post ,(concatenate 'string *url* "/add-comment")
-				   (create :body ($ "#clomment-field-body" (val))
-					   :author ($ "#clomment-field-author" (val))
-					   :site ($ "#clomment-field-site" (val)))
-				   #'display-data)))))
+	    (ps (doc-ready (post-to "/" nil #'display-data))
+		
+		(defun send-add-comment ()
+		  (post-to "/add-comment"
+			   (:body ($ "#clomment-field-body" (val))
+			    :author ($ "#clomment-field-author" (val))
+			    :site ($ "#clomment-field-site" (val)))
+			   #'display-data))
+		
+		(define-comment-fn report-comment)
+		(define-comment-fn like-comment)
+		(define-comment-fn dislike-comment)
+		
+		(defun display-data (data)
+		  ($ "#clomments" (html data)))
+		
+		(defun replace-comment (a-comment data)
+		  ($ a-comment (replace-with data)))))

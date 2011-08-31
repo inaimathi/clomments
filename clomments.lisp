@@ -2,9 +2,7 @@
 (file-enable-sql-reader-syntax)
 
 ;;;;;;;;;; MODEL
-(defun now () (clsql-sys:utime->time (get-universal-time)))
-
-;;;;;;;;;;;;;;; page-related
+;;;;;;;;;;;;;;; classes
 (def-view-class page ()
   ((id :type integer :accessor id :initarg :id :db-constraints (:not-null :auto-increment) :db-kind :key)
    (url :type string :reader url :initarg :url)
@@ -12,15 +10,6 @@
    (comments :accessor comments :db-kind :join
 	     :db-info (:join-class comment :home-key id :foreign-key page-id :set t))))
 
-(defun get-page (url) (caar (select 'page :where [= [slot-value 'page 'url] url])))
-
-(defun add-page (url)
-  (let* ((page (make-instance 'page :url url :posted (now)))
-	 (page-id (update-records-from-instance page)))
-    (setf (id page) page-id)
-    page))
-
-;;;;;;;;;;;;;;; comment-related
 (def-view-class comment ()
   ((id :type integer :accessor id :initarg :id :db-constraints (:not-null :auto-increment) :db-kind :key)
    (reply-to :type integer :reader reply-to :initarg reply-to :initform nil)
@@ -35,7 +24,36 @@
    (site :type string :reader site :initarg :site)
    (posted :type wall-time :reader posted :initarg :posted)))
 
+;;;;;;;;;;;;;;; general utility
+(defun new-database ()
+  (dolist (c '(page comment))
+    (when (table-exists-p c) (drop-view-from-class c))
+    (create-view-from-class c))
+
+(defun now () 
+  (clsql-sys:utime->time (get-universal-time)))
+
+(defun blank-p (thing)
+  (or (null thing)
+      (and (stringp thing) (string= "" thing))))
+
+;;;;;;;;;;;;;;; page-related
+(defun get-page (url) 
+  (caar (select 'page :where [= [slot-value 'page 'url] url])))
+
+(defun add-page (url)
+  "Adds a new page to the database, and returns the comment instance"
+  (let* ((page (make-instance 'page :url url :posted (now)))
+	 (page-id (update-records-from-instance page)))
+    (setf (id page) page-id)
+    page))
+
+;;;;;;;;;;;;;;; comment-related
+(defun get-comment (comment-id) 
+  (caar (select 'comment :where [= [slot-value 'comment 'id] comment-id])))
+
 (defun add-comment (page-id reply-to body author site)
+  "Adds a new comment to the database, and returns the comment instance"
   (let* ((comment (make-instance 'comment 
 				 :reply-to (when reply-to (parse-integer reply-to)) 
 				 :page-id page-id :posted (now)
@@ -45,39 +63,63 @@
 
 (defmethod echo ((comment comment))
   (with-html-output (*standard-output* nil :indent t)
-    (:div :class "clomment-comment"
+    (:div :class (format nil "clomment-comment clomment-~a" (id comment))
 	  (:div :class "clomment-header"
 		(:span :class "clomment-author"
-		       (str (author comment)))
-		(when (site comment)
+		       (str (escape-string (author comment))))
+		(when (not (blank-p (site comment)))
 		  (htm (:span :class "clomment-site"
-			      (str (format nil " of ~a" (site comment)))))))
-	  (:div :class "clomment-body" (str (body comment)))
+			      (str (format nil " of ~a" (escape-string (site comment)))))))
+		(:span :class "clomment-posted" (str (format nil " on ~a" (posted comment)))))
+	  (:div :class "clomment-body" (str (escape-string (body comment))))
 	  (:div :class "clomment-controls"
-		(:a :href (concatenate 'string *url* "/like-comment") (str "Like"))
-		(:a :href (concatenate 'string *url* "/dislike-comment") (str "Dislike"))
-		(:a :href (concatenate 'string *url* "/report-comment") (str "Report"))
-		(:span :class "clomment-posted" (str (format nil " - ~a" (posted comment))))))))
+		(str (- (likes comment) (dislikes comment)))
+	  	(:a :href "javascript:void(0)" 
+	  	    :onclick (ps* `(send-like-comment ,(id comment)))
+	  	    (str "Like"))
+	  	(:a :href "javascript:void(0)" 
+	  	    :onclick (ps* `(send-dislike-comment ,(id comment)))
+	  	    (str "Dislike"))
+	  	(:a :href "javascript:void(0)" 
+	  	    :onclick (ps* `(send-report-comment ,(id comment)))
+	  	    (str "Report"))))))
 
 (defmethod json ((comment comment))
+  "Useful for data exports, or if someone wants to generate their own markup."
   (with-html-output (*standard-output* nil :indent t)
     (encode-json comment)))
 
 ;;;;;;;;;;;;;;; comment handlers
-(define-easy-handler (report-comment :uri "/report-comment") (comment-id)
-  (let ((comment (caar (select 'comment :where [= [slot-value 'comment 'id] comment-id]))))
-    (when comment
-      (incf (reports comment))
-      (update-records-from-slot (reports comment)))))
-
-;; (define-easy-handler (like-comment :uri "/like-comment") (comment-id))
-;; (define-easy-handler (dislike--comment :uri "/dislike-comment") (comment-id))
-
 (define-easy-handler (new-comment :uri "/add-comment") (reply-to body author site)
   (let ((page (get-page (referer))))
     (unless page (setf page (add-page (referer))))
     (add-comment (id page) reply-to body author site)
     (redirect "/")))
+
+(defmacro define-comment-action (name &body body)
+  "This is a shortcut macro for tha comment handlers. 
+   They all 
+        - expect a comment-id
+        - get the corresponding comment 
+        - do something to it 
+        - echo the revised version afterwards"
+  `(define-easy-handler (,name :uri ,(format nil "/~(~a~)" name)) (comment-id)
+     (let ((comment (get-comment comment-id)))
+       (when comment
+	 ,@body
+	 (with-html-output-to-string (*standard-output*) (echo comment))))))
+
+(define-comment-action report-comment
+  (incf (reports comment))
+  (update-record-from-slot comment 'reports))
+
+(define-comment-action like-comment
+  (incf (likes comment))
+  (update-record-from-slot comment 'likes))
+
+(define-comment-action dislike-comment
+  (incf (dislikes comment))
+  (update-record-from-slot comment 'dislikes))
 
 ;;;;;;;;;; VIEW
 ;;;;;;;;;;;;;;; main display

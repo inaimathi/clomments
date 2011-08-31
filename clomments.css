@@ -1,6 +1,7 @@
 .clomment-comment { background-color: #eee; max-width: 400px; border-radius: 8px; margin-bottom: 5px; }
 .clomment-header { padding: 3px; background-color: #ccc; border-radius: 8px 8px 0px 0px; }
 .clomment-body { padding: 5px; }
+.clomment-posted { font-size: small; color: #666; }
 .clomment-controls { background-color: #ddd; border-radius: 0px 0px 8px 8px; }
 
 .form-fields { list-style: none; padding-bottom: 0px; }
