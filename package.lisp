@@ -4,7 +4,7 @@
   (:shadow :get-time))
 (in-package :clomments)
 
-(defparameter *db-spec* '("localhost" "clomments" "clomments" "your-password-here"))
+(defparameter *db-spec* '("localhost" "clomments" "clomments" "password"))
 (defparameter *db* (connect *db-spec* :database-type :mysql :pool t :make-default t))
 (setf *default-caching* nil)
 

@@ -32,13 +32,14 @@
    
    (body :type string :reader body :initarg :body)
    (author :type string :reader author :initarg :author)
+   (site :type string :reader site :initarg :site)
    (posted :type wall-time :reader posted :initarg :posted)))
 
-(defun add-comment (page-id reply-to body author)
+(defun add-comment (page-id reply-to body author site)
   (let* ((comment (make-instance 'comment 
 				 :reply-to (when reply-to (parse-integer reply-to)) 
 				 :page-id page-id :posted (now)
-				 :body body :author author))
+				 :body body :author author :site site))
 	 (comment-id (update-records-from-instance comment)))
     comment))
 
@@ -46,14 +47,17 @@
   (with-html-output (*standard-output* nil :indent t)
     (:div :class "clomment-comment"
 	  (:div :class "clomment-header"
-		(dolist (elem '(author posted))
-		  (htm (:span :class (format nil "clomment-~(~a~)" elem) 
-			      (str (slot-value comment elem))))))
+		(:span :class "clomment-author"
+		       (str (author comment)))
+		(when (site comment)
+		  (htm (:span :class "clomment-site"
+			      (str (format nil " of ~a" (site comment)))))))
 	  (:div :class "clomment-body" (str (body comment)))
 	  (:div :class "clomment-controls"
 		(:a :href (concatenate 'string *url* "/like-comment") (str "Like"))
 		(:a :href (concatenate 'string *url* "/dislike-comment") (str "Dislike"))
-		(:a :href (concatenate 'string *url* "/report-comment") (str "Report"))))))
+		(:a :href (concatenate 'string *url* "/report-comment") (str "Report"))
+		(:span :class "clomment-posted" (str (format nil " - ~a" (posted comment))))))))
 
 (defmethod json ((comment comment))
   (with-html-output (*standard-output* nil :indent t)
@@ -72,7 +76,7 @@
 (define-easy-handler (new-comment :uri "/add-comment") (reply-to body author site)
   (let ((page (get-page (referer))))
     (unless page (setf page (add-page (referer))))
-    (add-comment (id page) reply-to body author)
+    (add-comment (id page) reply-to body author site)
     (redirect "/")))
 
 ;;;;;;;;;; VIEW

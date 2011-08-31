@@ -23,6 +23,6 @@
 		 `(defun send-add-comment ()
 		    (chain $ (post ,(concatenate 'string *url* "/add-comment")
 				   (create :body ($ "#clomment-field-body" (val))
-					   :author ($ "#clomment-field-site" (val))
-					   :site ($ "#clomment-field-author" (val)))
+					   :author ($ "#clomment-field-author" (val))
+					   :site ($ "#clomment-field-site" (val)))
 				   #'display-data)))))
