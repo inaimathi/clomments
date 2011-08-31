@@ -24,7 +24,10 @@ That's it.
 3. Create a database and user, and change the definition of `*db-spec*` in `package.lisp` to match the information; *it's `'("server" "user" "database" "password")`)*
 4. install [quicklisp](http://www.quicklisp.org/beta/) *you can do without it, but it's more complicated 'cause you need to `asdf-install` everything more or less manually*
 5. `cd clomments; sbcl --eval "(ql:quickload :clomments)"`
-6. In SBCL, type `(new-database)`
+6. In SBCL, type 
+
+      (in-package :clomments)
+      (new-database)
 
 Go to `http://localhost:4242/test` in a browser.
 
