@@ -26,8 +26,8 @@ That's it.
 5. `cd clomments; sbcl --eval "(ql:quickload :clomments)"`
 6. In SBCL, type 
 
-      (in-package :clomments)
-      (new-database)
+    (in-package :clomments)  
+    (new-database)
 
 Go to `http://localhost:4242/test` in a browser.
 
