@@ -1,0 +1,12 @@
+.clomment-comment { background-color: #eee; max-width: 400px; border-radius: 8px; margin-bottom: 5px; }
+.clomment-header { padding: 3px; background-color: #ccc; border-radius: 8px 8px 0px 0px; }
+.clomment-body { padding: 5px; }
+.clomment-controls { background-color: #ddd; border-radius: 0px 0px 8px 8px; }
+
+.form-fields { list-style: none; padding-bottom: 0px; }
+.form-fields li { margin-bottom: 10px; clear: both; }
+.form-fields input { margin: 0px; }
+.form-fields .text-box { width: 250px; }
+.form-fields textarea { width: 246px; height: 60px; }
+.submit { border: 1px solid #1c2a51; border-radius: 10px 10px 10px 10px; -webkit-border-radius: 10px 10px 10px 10px; -moz-border-radius: 10px 10px 10px 10px; background-color: #1c2a51; color: #fff; font-weight: bold; padding: 3px 8px; }
+.form-fields .clomments-label { width: 65px; display: block; float: left; text-align: right; padding-right: 5px; height: 20px; }
