@@ -30,3 +30,5 @@ That's it.
         (create-view-from-class 'page)
 
 Go to `http://localhost:4242/test` in a browser.
+
+To function as a public server, you need to register a domain and point it to your server (don't do that until this actually becomes somewhat useful and stable).
