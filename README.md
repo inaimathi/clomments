@@ -1,5 +1,5 @@
 ## Usage as a client 
-###### assuming `clomments.inaimathi.ca`, but yo can replace that with any `clomments` server once more become available
+###### Assuming clomments.inaimathi.ca, but you can replace that with any clomments server once more become available
 
 Add
 
@@ -24,10 +24,7 @@ That's it.
 3. Create a database and user, and change the definition of `*db-spec*` in `package.lisp` to match the information; *it's `'("server" "user" "database" "password")`)*
 4. install [quicklisp](http://www.quicklisp.org/beta/) *you can do without it, but it's more complicated 'cause you need to `asdf-install` everything more or less manually*
 5. `cd clomments; sbcl --eval "(ql:quickload :clomments)"`
-6. In SBCL, type 
-
-        (create-view-from-class 'comment)  
-        (create-view-from-class 'page)
+6. In SBCL, type `(new-database)`
 
 Go to `http://localhost:4242/test` in a browser.
 
