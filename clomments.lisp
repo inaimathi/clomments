@@ -28,7 +28,7 @@
 (defun new-database ()
   (dolist (c '(page comment))
     (when (table-exists-p c) (drop-view-from-class c))
-    (create-view-from-class c))
+    (create-view-from-class c)))
 
 (defun now () 
   (clsql-sys:utime->time (get-universal-time)))
