@@ -8,8 +8,10 @@
   :maintainer "leo.zovic@gmail.com"
   :licence "AGPL"
   :description "A first crack at a comment hosting system"
-  :depends-on (:hunchentoot :cl-who :clsql :parenscript :cl-ppcre :cl-json)
+  :depends-on (:hunchentoot :drakma :cl-ppcre :cl-who :clsql :parenscript :cl-ppcre :cl-json)
   
   :components ((:file "package")
+	       (:file "util" :depends-on ("package"))
 	       (:file "js" :depends-on ("package"))
-	       (:file "clomments" :depends-on ("package" "js"))))
+	       (:file "model" :depends-on ("package" "util" "js"))
+	       (:file "clomments" :depends-on ("package" "util" "js" "model"))))

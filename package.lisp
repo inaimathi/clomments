@@ -1,8 +1,13 @@
 (defpackage :clomments 
     (:use :cl :hunchentoot :cl-who :clsql :parenscript)
-  (:import-from :json :encode-json)
+  (:import-from :drakma :http-request)
+  (:import-from :cl-ppcre :split)
+  (:import-from :json :encode-json-to-string)
   (:shadow :get-time))
 (in-package :clomments)
+
+(defvar *public-key* "[your-recaptcha-public-key-here]")
+(defvar *private-key* "[your-recaptcha-private-key-here]")
 
 (defparameter *db-spec* '("localhost" "clomments" "clomments" "password"))
 (defparameter *db* (connect *db-spec* :database-type :mysql :pool t :make-default t))

@@ -4,6 +4,8 @@
 .clomment-posted { font-size: small; color: #666; }
 .clomment-controls { background-color: #ddd; border-radius: 0px 0px 8px 8px; }
 
+#clomments-add-comment { display: none; }
+
 .form-fields { list-style: none; padding-bottom: 0px; }
 .form-fields li { margin-bottom: 10px; clear: both; }
 .form-fields input { margin: 0px; }
