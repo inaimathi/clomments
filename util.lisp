@@ -17,7 +17,7 @@
   (or (null thing)
       (and (stringp thing) (string= "" thing))))
 
-(defun recaptcha-passed? (challenge response ip &optional (private-key *private-key*))
+(defun recaptcha-passed-p (challenge response ip &optional (private-key *private-key*))
   (string= "true" 
 	   (car (split #\Newline
 		       (http-request "http://api-verify.recaptcha.net/verify" 
