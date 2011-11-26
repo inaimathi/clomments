@@ -10,6 +10,9 @@
   `(with-html-output (*standard-output* nil :indent t)
      ,@body))
 
+(defun page-link (page)
+  (concatenate 'string *url* page))
+
 (defun now () 
   (clsql-sys:utime->time (get-universal-time)))
 
@@ -26,3 +29,8 @@
 						   ("remoteip" . ,ip)
 						   ("challenge" . ,challenge)
 						   ("response" . ,response)))))))
+
+(defun url->host (url)
+  (let* ((url-regex "^((http[s]?|ftp):\\/)?\\/?([^:\\/\\s]+)((\\/\\w+)*\\/)?([\\w\\-\\.]+[^#?\\s]+)?(.*)?(#[\\w\\-]+)?$")
+	 (scanned (nth-value 1 (scan-to-strings url-regex url))))
+    (aref scanned 2)))

@@ -1,32 +1,19 @@
 (in-package :clomments)
 
 ;;;;;;;;;;;;;;; comment handlers
-(define-easy-handler (get-comments :uri "/get-comments") (raw)
-  (with-conn
-    (let ((page (get-page (referer))))
-      (with-html-output-to-string (*standard-output* nil :indent t)
-	(:a :name "clomments-section")
-	(if (and page (comments page))
-	    (dolist (comment (comments page))
-	      (str (if raw (json comment) (echo comment))))
-	    (htm (:p "No comments for this page yet.")
-		 (:p (str (format nil "No comments on ~a" (referer))))))
-	(htm (comment-form)
-	     (:input :type "button" :onclick "showCommentForm()" :value "Add Comment"))))))
-
-(define-easy-handler (new-comment :uri "/add-comment") (reply-to body author site recaptcha-challenge recaptcha-response)
+(define-easy-handler (new-comment :uri "/add-comment") (parent body author site recaptcha-challenge recaptcha-response)
   (if (recaptcha-passed-p recaptcha-challenge recaptcha-response (real-remote-addr))
       (with-conn
 	(let ((page (get-page (referer))))
 	  (unless page (setf page (add-page (referer))))
-	  (add-comment (id page) reply-to body author site)
+	  (add-comment (id page) parent body author site)
 	  (redirect "/get-comments")))
       (encode-json-to-string 
        `((:error . :recaptcha) 
 	 (:message . "You seem to have mistyped the recaptcha, please try again.")))))
-  
+
 (defmacro define-comment-action (name &body body)
-  "This is a shortcut macro for tha comment handlers. 
+  "This is a shortcut macro for the comment handlers. 
    They all 
         - expect a comment-id
         - get the corresponding comment 
@@ -38,6 +25,15 @@
 	   (when comment
 	     ,@body
 	     (with-html-output-to-string (*standard-output*) (echo comment)))))))
+
+(define-comment-action approve-comment
+  (setf (state comment) :approved))
+
+(define-comment-action hide-comment
+  (setf (state comment) :hidden))
+
+(define-comment-action delete-comment
+  (delete-instance-records comment))
 
 (define-comment-action report-comment
   (incf (reports comment))
@@ -51,8 +47,53 @@
   (incf (dislikes comment))
   (update-record-from-slot comment 'dislikes))
 
+;;;;;;;;;;;;;;; ui handlers
+(define-easy-handler (get-comments :uri "/get-comments") ()
+  "Returns all comments from the calling page."
+  (with-conn
+    (let ((page (get-page (referer))))
+      (with-html-output-to-string (*standard-output* nil :indent t)
+	(:a :name "clomments-section")
+	(echo page)
+	(htm (:input :type "button" :onclick "showCommentForm()" :value "Add Comment")
+	     (:input :type "button" :onclick "showModView()" :value "Moderate"))))))
+
+(define-easy-handler (get-comment-thread :uri "/get-thread") (comment-id)
+  (when comment-id
+    (with-conn
+      (with-html-output-to-string (*standard-output* nil :indent t)
+	(:ul :class "clomment-list"
+	     (mapc #'echo-tree (children (get-comment (parse-integer comment-id)))))))))
+
+(define-easy-handler (moderate-page :uri "/moderate-page") ()
+  (with-conn
+    (let ((page (get-page (referer))))
+      (with-html-output-to-string (*standard-output* nil :indent t)
+	(loop for (comment) in (comments page)
+	      do (echo comment)
+	      do (echo-admin comment))))))
+
 ;;;;;;;;;; VIEW
 ;;;;;;;;;;;;;;; main display
+(defmethod echo ((page page))
+  (with-html 
+    (if (and page (comments page))
+	(htm (:ul :class "clomment-list top-level"
+		  (loop for (comment) in (comments page)
+			do (str (echo-tree comment)))))
+	(htm (:p "No comments for this page yet.")))))
+
+(defmethod echo-tree ((comment comment) &optional (depth 0))
+  (with-html
+    (:li (str (echo comment))
+	 (cond ((and (children comment) (> *default-comment-depth* depth))
+		(htm (:ul :class "clomment-list"
+		      (mapc (lambda (c) (str (echo-tree c (+ 1 depth))))
+			    (children comment)))))
+	       ((children comment) 
+		(htm (:ul :class "clomment-list" 
+			  (:li (:div :onclick (format nil "getThread(~a, this);" (id comment)) "Continue Thread >")))))))))
+
 (defmethod echo ((comment comment))
   (with-html
     (:div :class (format nil "clomment-comment clomment-~a" (id comment))
@@ -74,7 +115,18 @@
 	  	    (str "Dislike"))
 	  	(:a :href "javascript:void(0)" 
 	  	    :onclick (ps* `(send-report-comment ,(id comment)))
-	  	    (str "Report"))))))
+	  	    (str "Report"))
+		(:a :href "javascript:void(0)" 
+	  	    :onclick (ps* `(show-reply-form ,(id comment)))
+	  	    (str "Reply"))))))
+
+(defmethod echo-admin ((comment comment))
+  (with-html
+    (:div :class (format nil "clomment-stats clomment-~a" (id comment))
+	  (:p "Likes: " (str (likes comment)))
+	  (:p "Dislikes: " (str (dislikes comment)))
+	  (:p "Reports: " (str (reports comment)))
+	  (:a :href (concatenate 'string *url* "")))))
 
 (defmethod echo-posted ((comment comment))
   (wall-time->time-diff (posted comment)))
@@ -93,22 +145,6 @@
 (defmethod json ((comment comment))
   "Useful for data exports, or if someone wants to generate their own markup."
   (with-html (encode-json-to-string comment)))
-
-(defun comment-form ()
-  (with-html
-    (:div :id "clomments-add-comment"
-	  (:ul :class "form-fields"
-	       (:input :type "hidden" :id "respond-to")
-	       (:li (:span :class "clomments-label" "Name")
-		    (:input :class "text-box" :id "clomment-field-author"))
-	       (:li (:span :class "clomments-label" "Your Site")
-		    (:input :class "text-box" :id "clomment-field-site"))
-	       (:li (:span :class "clomments-label" "Comment")
-		    (:textarea :id "clomment-field-body"))
-	       (:li (:div :id "recaptcha_div"))
-	       (:li (:span :class "clomments-label" "")
-		    (:input :type "button" :value "Post"
-			    :onclick "sendAddComment();"))))))
 
 ;;;;;;;;;;;;;;; test page
 (define-easy-handler (test :uri "/test") ()
