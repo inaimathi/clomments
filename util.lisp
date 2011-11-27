@@ -10,9 +10,6 @@
   `(with-html-output (*standard-output* nil :indent t)
      ,@body))
 
-(defun page-link (page)
-  (concatenate 'string *url* page))
-
 (defun now () 
   (clsql-sys:utime->time (get-universal-time)))
 

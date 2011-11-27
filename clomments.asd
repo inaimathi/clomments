@@ -3,7 +3,7 @@
 (in-package :clomments-system)
 
 (asdf:defsystem clomments
-  :version "0.1"
+  :version "0.11"
   :author "leo.zovic@gmail.com"
   :maintainer "leo.zovic@gmail.com"
   :licence "AGPL"
@@ -12,6 +12,9 @@
   
   :components ((:file "package")
 	       (:file "util" :depends-on ("package"))
-	       (:file "js" :depends-on ("package"))
-	       (:file "model" :depends-on ("package" "util" "js"))
-	       (:file "clomments" :depends-on ("package" "util" "js" "model"))))
+	       (:file "js-macros" :depends-on ("package"))
+	       (:file "js" :depends-on ("package" "js-macros"))
+	       (:file "sites+pages" :depends-on ("package" "util" "js"))
+	       (:file "comments" :depends-on ("package" "util" "js" "sites+pages"))
+	       (:file "api-handlers" :depends-on ("package" "util" "js" "sites+pages" "comments"))
+	       (:file "internal-handlers" :depends-on ("package" "util" "js" "sites+pages" "comments" "api-handlers"))))
